@@ -845,6 +845,8 @@ const MELODY_IDS = [
             combo: 0, maxCombo: 18, accuracy: 0.9, score: 1033,
         };
         hud.updateStats({ ...stats, score: 500, combo: 3, accuracy: 0.5 });
+        assert.strictEqual(hud['_scoreLabel'].cacheMode, cc.Label.CacheMode.NONE, '实时分数必须关闭字形缓存');
+        assert.strictEqual(hud['_comboLabel'].cacheMode, cc.Label.CacheMode.NONE, '连击必须关闭字形缓存');
         hud.showResult(stats);
         assert.strictEqual(hud['_resultScore'].string, '01033');
         assert.strictEqual(hud['_scoreLabel'].string, '', '结算时左上角分数必须清空（双保险）');

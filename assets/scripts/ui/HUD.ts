@@ -116,6 +116,16 @@ export class HUD {
         this._judgeLabel = this._makeLabel('', 46, GRADE_COLORS.PERFECT, 0, 0, 0.5, FONT_SERIF, true, this._judgeNode);
         this._offsetLabel = this._makeLabel('', 15, COLOR_TEXT_DIM, 0, -34, 0.5, FONT_SANS, false, this._judgeNode);
 
+        // 会随判定频繁改写的 Label 关闭字形缓存：
+        // CHAR 模式在微信真机上更新字符串时可能只重绘部分字符，
+        // 表现为分数停在旧值 / 数字缺位，这是本项目的已知坑。
+        for (const dynamic of [
+            this._scoreLabel, this._comboLabel, this._accLabel,
+            this._offsetStatLabel, this._judgeLabel, this._offsetLabel,
+        ]) {
+            dynamic.cacheMode = Label.CacheMode.NONE;
+        }
+
         // ---------- 遮罩层 ----------
         this._overlay = new Node('Overlay');
         this._overlay.layer = Layers.Enum.UI_2D;
