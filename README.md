@@ -264,7 +264,7 @@ y = judgeY + (note.time - currentAudioTime) * fallSpeed
 | --- | --- |
 | [需求说明](docs/01-需求说明.md) | 功能 / 非功能需求与验收标准 |
 | [设计文档](docs/02-设计文档.md) | 架构、数据模型、判定算法、音频方案 |
-| [测试报告](docs/03-测试报告.md) | 40 项单元测试与模拟器冒烟结果 |
+| [测试报告](docs/03-测试报告.md) | 50 项单元测试与模拟器冒烟结果 |
 | [部署手册](docs/04-部署手册.md) | 构建、预览、发布、排障与回滚 |
 | [交付清单](docs/05-交付清单.md) | 产出物清单与需求对照 |
 | [收尾报告](docs/06-收尾报告.md) | 全周期总结与结项结论 |
@@ -277,7 +277,7 @@ y = judgeY + (note.time - currentAudioTime) * fallSpeed
 # 类型检查（使用 Cocos 自带 tsc）
 node "<Cocos>/resources/app.asar.unpacked/node_modules/typescript/bin/tsc" --noEmit -p tsconfig.json
 
-# 单元测试（40 项）
+# 单元测试（50 项）
 cd tools/tests
 node "<同上>/tsc" -p tsconfig.json
 node test.js
