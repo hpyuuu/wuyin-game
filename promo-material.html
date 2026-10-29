@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>五音 · 宫商角徵羽 | 宣传物料</title>
+<style>
+  :root {
+    --bg: #050608;
+    --ink: #ece6da;
+    --dim: rgba(236, 230, 218, 0.55);
+    --faint: rgba(236, 230, 218, 0.28);
+    --gong: #e4b65a;
+    --shang: #c6b078;
+    --jue: #d26a3e;
+    --zhi: #3494a0;
+    --yu: #747ee2;
+    --line: rgba(255, 255, 255, 0.09);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background:
+      repeating-linear-gradient(0deg, transparent 0 71px, rgba(255,255,255,0.028) 71px 72px),
+      repeating-linear-gradient(90deg, transparent 0 71px, rgba(255,255,255,0.028) 71px 72px),
+      radial-gradient(circle at 50% 0%, #0d1016 0%, #050608 55%);
+    color: var(--ink);
+    font-family: "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 24px 72px;
+  }
+  .poster {
+    width: 760px;
+    max-width: 100%;
+  }
+  .kicker {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.42em;
+    color: var(--faint);
+    margin-bottom: 26px;
+  }
+  h1 {
+    font-size: 88px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    line-height: 1.05;
+    text-shadow: 0 0 42px rgba(236, 230, 218, 0.18);
+  }
+  .sub {
+    margin-top: 18px;
+    font-size: 15px;
+    color: var(--dim);
+    letter-spacing: 0.24em;
+  }
+  .rule {
+    height: 1px;
+    background: linear-gradient(90deg, var(--line), transparent);
+    margin: 40px 0 34px;
+  }
+  .tones {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 54px;
+  }
+  .tone { text-align: center; flex: 1; }
+  .bar {
+    height: 168px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    box-shadow: 0 0 28px -6px currentColor, inset 0 0 26px -10px currentColor;
+    margin-bottom: 14px;
+  }
+  .tone-name { font-size: 26px; letter-spacing: 0.1em; }
+  .tone-num {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    color: var(--faint);
+    margin-top: 6px;
+    letter-spacing: 0.2em;
+  }
+  .t1 { color: var(--gong); }
+  .t2 { color: var(--shang); }
+  .t3 { color: var(--jue); }
+  .t4 { color: var(--zhi); }
+  .t5 { color: var(--yu); }
+
+  .points { display: grid; gap: 26px; margin-bottom: 52px; }
+  .point h2 {
+    font-size: 21px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+  .point p { font-size: 15px; line-height: 1.95; color: var(--dim); }
+  .formula {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: var(--jue);
+    letter-spacing: 0.08em;
+  }
+
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 52px; }
+  .mode {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 26px 24px 28px;
+    background: rgba(255, 255, 255, 0.018);
+  }
+  .mode .idx {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--faint);
+    margin-bottom: 22px;
+  }
+  .mode h3 { font-size: 26px; font-weight: 400; margin-bottom: 8px; }
+  .mode span {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--faint);
+  }
+  .mode p { margin-top: 16px; font-size: 13px; line-height: 1.8; color: var(--dim); }
+
+  .slogan {
+    text-align: center;
+    padding: 46px 20px 0;
+    border-top: 1px solid var(--line);
+  }
+  .slogan strong {
+    display: block;
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: 0.24em;
+    margin-bottom: 16px;
+    text-shadow: 0 0 30px rgba(236, 230, 218, 0.2);
+  }
+  .slogan em {
+    font-style: normal;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.34em;
+    color: var(--faint);
+  }
+  .copy {
+    margin-top: 40px;
+    padding: 24px 26px;
+    border-left: 2px solid rgba(228, 182, 90, 0.5);
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .copy h4 {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--faint);
+    font-weight: 400;
+    margin-bottom: 12px;
+  }
+  .copy p { font-size: 14px; line-height: 2; color: var(--dim); }
+  .copy p + p { margin-top: 12px; }
+  footer {
+    margin-top: 44px;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    color: rgba(236, 230, 218, 0.3);
+  }
+  @media (max-width: 620px) {
+    h1 { font-size: 58px; }
+    .bar { height: 120px; }
+    .tone-name { font-size: 20px; }
+    .modes { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <main class="poster">
+    <div class="kicker">AROUND YOU · 生活里的五音</div>
+    <h1>宫商角徵羽</h1>
+    <p class="sub">五声音阶 · 一弦五音 · 随手成曲</p>
+
+    <div class="rule"></div>
+
+    <section class="tones">
+      <div class="tone t1"><div class="bar"></div><div class="tone-name">宫</div><div class="tone-num">1</div></div>
+      <div class="tone t2"><div class="bar"></div><div class="tone-name">商</div><div class="tone-num">2</div></div>
+      <div class="tone t3"><div class="bar"></div><div class="tone-name">角</div><div class="tone-num">3</div></div>
+      <div class="tone t4"><div class="bar"></div><div class="tone-name">徵</div><div class="tone-num">5</div></div>
+      <div class="tone t5"><div class="bar"></div><div class="tone-name">羽</div><div class="tone-num">6</div></div>
+    </section>
+
+    <section class="points">
+      <div class="point">
+        <h2>五个音，由一根弦推算而来</h2>
+        <p>把弦长按 2/3 的比例反复推算：<span class="formula">64 × 2/3 = 42.67…</span><br />
+           数字已无法整除，但最先定下的五个音，就是宫、商、角、徵、羽。</p>
+      </div>
+      <div class="point">
+        <h2>任意组合，都不会刺耳</h2>
+        <p>这是五声音阶最妙的地方——随手一按都像“对”的，<br />
+           所以它写进了《茉莉花》，也写进了《友谊地久天长》。</p>
+      </div>
+      <div class="point">
+        <h2>把五个音，变成可以玩的节奏</h2>
+        <p>五条轨道对应五个音，下落、击打、判定；<br />
+           也可以拨动五根琴弦，怎么组合都好听。</p>
+      </div>
+    </section>
+
+    <section class="modes">
+      <div class="mode">
+        <div class="idx">01</div>
+        <h3>节奏模式</h3>
+        <span>FALLING NOTES</span>
+        <p>五轨下落，底部判定线。<br />越准，分越高。</p>
+      </div>
+      <div class="mode">
+        <div class="idx">02</div>
+        <h3>自由弹奏</h3>
+        <span>FREE PLAY</span>
+        <p>五根琴弦，点击或滑过。<br />一弦一音，随手成曲。</p>
+      </div>
+    </section>
+
+    <section class="slogan">
+      <strong>一 弦 五 音</strong>
+      <em>PENTATONIC · FIVE TONES</em>
+    </section>
+
+    <section class="copy">
+      <h4>宣传文案（可直接用于朋友圈 / 视频简介）</h4>
+      <p>宫商角徵羽，就是简谱里的 1 2 3 5 6。<br />
+         五个音，由一根弦按 2/3 的比例推算而来；任意组合，都不会刺耳。</p>
+      <p>现在，这五个音变成了一个能玩的小游戏：<br />
+         五轨下落击打，或拨动五根琴弦——一弦五音，随手成曲。</p>
+      <p style="color: rgba(236,230,218,0.4)">#五声音阶 #宫商角徵羽 #微信小游戏 #音游</p>
+    </section>
+
+    <footer>
+      <span>五音 · 五轨</span>
+      <span>WECHAT MINI GAME</span>
+    </footer>
+  </main>
+</body>
+</html>

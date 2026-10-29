@@ -1,0 +1,16 @@
+# Cocos Creator 生成目录
+library/
+temp/
+local/
+profiles/
+build/
+native/
+
+# 依赖与系统文件
+node_modules/
+.DS_Store
+Thumbs.db
+
+# 临时产物（预览二维码、自动化截图）
+preview-qr.png
+.screenshots/
