@@ -10,6 +10,7 @@ import {
 import { GameConfig } from './core/GameConfig';
 import { GameMain, GameStats } from './core/GameMain';
 import { NotePool } from './core/NotePool';
+import { saveBest } from './core/ScoreStore';
 import { Backdrop } from './ui/Backdrop';
 import { ChartEditor, EditorHit } from './ui/ChartEditor';
 import { ChartSelect, SelectAction } from './ui/ChartSelect';
@@ -57,6 +58,8 @@ export class GameEntry extends Component {
     private _chartReady: Promise<void> | null = null;
     /** 每次开局自增，用于丢弃"加载期间已切屏/重进"的过期流程 */
     private _loadToken = 0;
+    /** 当前谱面 id：最高分按谱面分别记录 */
+    private _chartKey = 'default';
     private _mode: EntryMode = 'ready';
     private _screen: Screen = 'menu';
     private _acceptRestart = false;
@@ -149,6 +152,7 @@ export class GameEntry extends Component {
         this._chartReady = loadChart().then((chart) => {
             this._game.load(chart);
             this._hud.setTitle(chart.name);
+            this._chartKey = (chart.meta && chart.meta.id) || 'default';
         });
 
         // 7) 输入
@@ -244,6 +248,7 @@ export class GameEntry extends Component {
         if (chart) {
             this._game.load(chart);
             this._hud.setTitle(chart.name);
+            this._chartKey = (chart.meta && chart.meta.id) || 'default';
             this._chartReady = Promise.resolve();
         }
         void this._startGame();
@@ -760,7 +765,9 @@ export class GameEntry extends Component {
 
     private _handleFinish(stats: GameStats): void {
         this._mode = 'finished';
-        this._hud.showResult(stats);
+        // 结算即落盘：分数更高才覆盖，返回最终最佳成绩与是否刷新纪录
+        const record = saveBest(this._chartKey, stats);
+        this._hud.showResult(stats, record.best, record.isNew);
 
         // 防止最后一次击打直接触发重开
         this._acceptRestart = false;

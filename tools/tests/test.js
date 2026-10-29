@@ -39,6 +39,7 @@ const { FreePlay } = require('./dist/ui/FreePlay');
 const { HUD } = require('./dist/ui/HUD');
 const { computeLayout } = require('./dist/ui/SceneBuilder');
 const { PromoPage } = require('./dist/ui/PromoPage');
+const ScoreStore = require('./dist/core/ScoreStore');
 
 // ---------- 极简测试框架 ----------
 let passed = 0;
@@ -718,6 +719,156 @@ const MELODY_IDS = [
         view.setPitch(60, 60);
         assert.strictEqual(view['_octave'], 0, '同音应回到 0');
         assert.strictEqual(view.lane, 0, '视觉变化不得影响轨道号');
+    });
+
+    // ==================================================================
+    section('九、分数系统（计分 / 结算 / 持久化）');
+    // ==================================================================
+
+    test('计分：基础分 + 连击加成', () => {
+        const h = makeGame(chartOf([1000, 2000, 3000]), 0);
+        h.game.update(0.016);
+        h.setTime(1000); h.game.update(0.016); h.game.pressLane(0);
+        assert.strictEqual(h.game.stats.score, 102, '第 1 个 PERFECT = 100 + 1×2');
+        h.setTime(2000); h.game.update(0.016); h.game.pressLane(0);
+        assert.strictEqual(h.game.stats.score, 206, '第 2 个 = +100 + 2×2');
+        h.setTime(3100); h.game.update(0.016); h.game.pressLane(0);
+        assert.strictEqual(h.game.stats.score, 206 + 30 + 3 * 2, 'GOOD 也吃连击加成');
+    });
+
+    test('连击加成的上限是 100，超出后不再增长', () => {
+        const times = [];
+        for (let i = 0; i < 105; i++) {
+            times.push(1000 + i * 200);
+        }
+        const h = makeGame(chartOf(times), 0);
+        h.game.update(0.016);
+        const scores = [];
+        for (const t of times) {
+            h.setTime(t);
+            h.game.update(0.016);
+            h.game.pressLane(0);
+            scores.push(h.game.stats.score);
+        }
+        const d100 = scores[99] - scores[98];
+        const d101 = scores[100] - scores[99];
+        assert.strictEqual(d100, 300, '第 100 连击：100 + 100×2');
+        assert.strictEqual(d101, 300, '第 101 连击：加成仍封顶 200');
+    });
+
+    test('MISS 不加分，且清空连击', () => {
+        const h = makeGame(chartOf([1000, 2000]), 0);
+        h.game.update(0.016);
+        h.setTime(1000); h.game.update(0.016); h.game.pressLane(0);
+        const afterHit = h.game.stats.score;
+        assert.ok(afterHit > 0);
+        h.setTime(2131); h.game.update(0.016);
+        assert.strictEqual(h.game.stats.score, afterHit, 'MISS 不改变总分');
+        assert.strictEqual(h.game.stats.combo, 0, 'MISS 清空连击');
+        assert.strictEqual(h.game.stats.maxCombo, 1, '最大连击保留历史峰值');
+    });
+
+    test('同一音符不会被重复计分', () => {
+        const h = makeGame(chartOf([1000]), 0);
+        h.game.update(0.016);
+        h.setTime(1000); h.game.update(0.016);
+        h.game.pressLane(0);
+        const once = h.game.stats.score;
+        h.game.pressLane(0);
+        h.game.pressLane(0);
+        assert.strictEqual(h.game.stats.score, once, '重复点击不再加分');
+        assert.strictEqual(h.game.stats.totalJudged, 1, '判定次数不重复累计');
+    });
+
+    test('空气打（超窗口）不产生判定也不加分', () => {
+        const h = makeGame(chartOf([1000]), 0);
+        h.game.update(0.016);
+        h.setTime(1121); h.game.update(0.016);   // 已判 MISS
+        const judged = h.game.stats.totalJudged;
+        h.game.pressLane(0);
+        assert.strictEqual(h.game.stats.totalJudged, judged, '空气打不新增判定');
+        assert.strictEqual(h.game.stats.score, 0, '空气打不加分');
+    });
+
+    test('结算快照与实时分数完全一致', () => {
+        const h = makeGame(chartOf([1000]), 0);
+        h.game.update(0.016);
+        h.setTime(1000); h.game.update(0.016); h.game.pressLane(0);
+        const live = h.game.stats;
+        h.setTime(1000 + GameConfig.endDelayMs + 10);
+        h.game.update(0.016);
+        assert.ok(h.finishStats, '应已结算');
+        assert.strictEqual(h.finishStats.score, live.score);
+        assert.strictEqual(h.finishStats.accuracy, live.accuracy);
+        assert.strictEqual(h.finishStats.maxCombo, live.maxCombo);
+    });
+
+    test('最高分：首次写入 / 低分不覆盖 / 高分覆盖', () => {
+        resetStorage();
+        assert.strictEqual(ScoreStore.getBest('builtin-t'), null, '无记录时返回 null');
+
+        const first = ScoreStore.saveBest('builtin-t', { score: 500, accuracy: 0.8, maxCombo: 12 });
+        assert.strictEqual(first.isNew, true);
+        assert.strictEqual(ScoreStore.getBest('builtin-t').score, 500);
+
+        const lower = ScoreStore.saveBest('builtin-t', { score: 400, accuracy: 0.9, maxCombo: 20 });
+        assert.strictEqual(lower.isNew, false);
+        assert.strictEqual(ScoreStore.getBest('builtin-t').score, 500, '低分不覆盖');
+        assert.strictEqual(ScoreStore.getBest('builtin-t').maxCombo, 12, '旧记录保持原样');
+
+        const higher = ScoreStore.saveBest('builtin-t', { score: 900, accuracy: 0.95, maxCombo: 30 });
+        assert.strictEqual(higher.isNew, true);
+        assert.strictEqual(ScoreStore.getBest('builtin-t').score, 900);
+        assert.strictEqual(ScoreStore.getBest('builtin-t').maxCombo, 30);
+    });
+
+    test('最高分：0 分不占记录，脏数据按无记录处理', () => {
+        resetStorage();
+        const zero = ScoreStore.saveBest('builtin-zero', { score: 0, accuracy: 1, maxCombo: 0 });
+        assert.strictEqual(zero.isNew, false);
+        assert.strictEqual(zero.best, null);
+        assert.strictEqual(ScoreStore.getBest('builtin-zero'), null, '0 分不写存储');
+
+        global.localStorage.setItem('wuyin.best.broken', '{oops');
+        assert.strictEqual(ScoreStore.getBest('broken'), null, '损坏 JSON 不崩溃');
+        global.localStorage.setItem('wuyin.best.neg', JSON.stringify({ score: -5 }));
+        assert.strictEqual(ScoreStore.getBest('neg'), null, '负数分数按无记录处理');
+        global.localStorage.setItem('wuyin.best.nan', JSON.stringify({ score: 'abc' }));
+        assert.strictEqual(ScoreStore.getBest('nan'), null, '非数字分数按无记录处理');
+    });
+
+    test('结算页：分数固定 5 位、顶部实时数据移出画面、BEST 正确展示', () => {
+        const hud = new HUD(new Node('Root'), layout);
+        const stats = {
+            total: 39, totalJudged: 39,
+            perfect: 30, great: 5, good: 2, miss: 2,
+            combo: 0, maxCombo: 18, accuracy: 0.9, score: 1033,
+        };
+        hud.showResult(stats);
+        assert.strictEqual(hud['_resultScore'].string, '01033');
+        assert.ok(hud['_topBar'].position.y <= -10000, '结算时顶部 SCORE/COMBO 必须移出画面');
+        assert.strictEqual(hud['_bestLabel'].string, '', '没有历史记录时不显示 BEST');
+        assert.strictEqual(hud['_resultDetail'].string.indexOf('TOTAL 39 / 39') >= 0, true, '详情应包含判定总数');
+        assert.strictEqual(hud['_resultScore'].overflow, cc.Label.Overflow.SHRINK, '分数需 SHRINK 防止裁切');
+
+        hud.showResult(stats, { score: 1033, accuracy: 0.9, maxCombo: 18, time: 0 }, false);
+        assert.strictEqual(hud['_bestLabel'].string, 'BEST  01033');
+
+        hud.showResult(stats, { score: 1033, accuracy: 0.9, maxCombo: 18, time: 0 }, true);
+        assert.strictEqual(hud['_bestLabel'].string, 'NEW RECORD  01033');
+
+        hud.showPlaying();
+        assert.strictEqual(hud['_topBar'].position.y, 0, '开局后顶部数据必须归位');
+    });
+
+    test('分数超过 5 位时不被截断（补齐 6 位）', () => {
+        const hud = new HUD(new Node('Root'), layout);
+        hud.showResult({
+            total: 640, totalJudged: 640,
+            perfect: 640, great: 0, good: 0, miss: 0,
+            combo: 0, maxCombo: 640, accuracy: 1, score: 123456,
+        });
+        assert.strictEqual(hud['_resultScore'].string, '123456');
     });
 
     // ==================================================================

@@ -2,6 +2,7 @@ import {
     Color, Graphics, Label, Layers, Node, Tween, tween, UIOpacity, UITransform, Vec3,
 } from 'cc';
 import { GameStats } from '../core/GameMain';
+import { BestRecord } from '../core/ScoreStore';
 import { JudgeResult } from '../core/ChartTypes';
 import { LayoutInfo } from './SceneBuilder';
 import {
@@ -10,6 +11,8 @@ import {
 } from './Theme';
 
 const OVERLAY_BG = new Color(4, 5, 7, 232);
+/** 最高分 / 新纪录的高亮色 */
+const COLOR_BEST = new Color(236, 201, 128, 255);
 /** 隐藏时把整页移出可视区（不切换 active，规避微信 Label 字形缓存丢失） */
 const HUD_HIDDEN_Y = -20000;
 
@@ -40,12 +43,15 @@ export class HUD {
     private readonly _offsetLabel: Label;
     /** 顶部曲名，随当前谱面切换 */
     private readonly _titleLabel: Label;
+    /** 顶部实时数据容器：结算时整体移出画面，避免与结算分数同屏造成误读 */
+    private readonly _topBar: Node;
 
     private readonly _overlay: Node;
     private readonly _readyGroup: Node;
     private readonly _resultGroup: Node;
     private _resultScore: Label = null!;
     private _resultDetail: Label = null!;
+    private _bestLabel: Label = null!;
 
     /** 最近的击打偏差（毫秒），用于真机手感校准 */
     private readonly _offsetHistory: number[] = [];
@@ -62,20 +68,27 @@ export class HUD {
         // 让开微信胶囊按钮占用的顶部空间
         const topY = layout.height / 2 - layout.topInset;
 
+        // 顶部实时数据统一挂在 TopBar 下：结算时整体位移隐藏，
+        // 否则结算页左上还会亮着上一局的 SCORE，与中间成绩同屏容易误读。
+        this._topBar = new Node('TopBar');
+        this._topBar.layer = Layers.Enum.UI_2D;
+        this._topBar.addComponent(UITransform);
+        this._root.addChild(this._topBar);
+
         // ---------- 左上：分数 ----------
-        this._makeLabel(spaced('SCORE'), 14, COLOR_TEXT_DIM, -halfW + 42, topY - 82, 0, FONT_SANS);
-        this._scoreLabel = this._makeLabel('00000', 46, COLOR_TEXT, -halfW + 42, topY - 124, 0, FONT_SERIF, true);
+        this._makeLabel(spaced('SCORE'), 14, COLOR_TEXT_DIM, -halfW + 42, topY - 82, 0, FONT_SANS, false, this._topBar);
+        this._scoreLabel = this._makeLabel('00000', 46, COLOR_TEXT, -halfW + 42, topY - 124, 0, FONT_SERIF, true, this._topBar);
 
         // ---------- 右上：连击 / 准确率 ----------
-        this._makeLabel(spaced('COMBO'), 14, COLOR_TEXT_DIM, halfW - 42, topY - 82, 1, FONT_SANS);
-        this._comboLabel = this._makeLabel('0', 46, COLOR_TEXT, halfW - 42, topY - 124, 1, FONT_SERIF, true);
-        this._accLabel = this._makeLabel('ACC 100.0%', 14, COLOR_TEXT_DIM, halfW - 42, topY - 172, 1, FONT_SANS);
+        this._makeLabel(spaced('COMBO'), 14, COLOR_TEXT_DIM, halfW - 42, topY - 82, 1, FONT_SANS, false, this._topBar);
+        this._comboLabel = this._makeLabel('0', 46, COLOR_TEXT, halfW - 42, topY - 124, 1, FONT_SERIF, true, this._topBar);
+        this._accLabel = this._makeLabel('ACC 100.0%', 14, COLOR_TEXT_DIM, halfW - 42, topY - 172, 1, FONT_SANS, false, this._topBar);
         // 常驻偏差面板：LAST=最近一次，AVG=最近 20 次均值（校准 globalOffsetMs 用）
-        this._offsetStatLabel = this._makeLabel('', 12, withAlpha(COLOR_TEXT, 120), halfW - 42, topY - 196, 1, FONT_SANS);
+        this._offsetStatLabel = this._makeLabel('', 12, withAlpha(COLOR_TEXT, 120), halfW - 42, topY - 196, 1, FONT_SANS, false, this._topBar);
 
         // ---------- 顶部中间：曲名 ----------
-        this._titleLabel = this._makeLabel('五 音 · 五 轨', 18, COLOR_TEXT_DIM, 0, topY - 86, 0.5, FONT_SERIF);
-        this._makeLabel(spaced('FALLING'), 10, withAlpha(COLOR_TEXT_DIM, 70), 0, topY - 112, 0.5, FONT_SANS);
+        this._titleLabel = this._makeLabel('五 音 · 五 轨', 18, COLOR_TEXT_DIM, 0, topY - 86, 0.5, FONT_SERIF, false, this._topBar);
+        this._makeLabel(spaced('FALLING'), 10, withAlpha(COLOR_TEXT_DIM, 70), 0, topY - 112, 0.5, FONT_SANS, false, this._topBar);
 
         // ---------- 轨道编号（宫商角徵羽 + 简谱） ----------
         for (let i = 0; i < layout.laneX.length; i++) {
@@ -197,10 +210,12 @@ export class HUD {
         this._overlay.active = true;
         this._readyGroup.active = true;
         this._resultGroup.active = false;
+        this._topBar.setPosition(0, 0, 0);
     }
 
     public showPlaying(): void {
         this._overlay.active = false;
+        this._topBar.setPosition(0, 0, 0);
         // 新一局开始必须清掉上一局的判定文字，否则会残留在判定线上方
         this._resetJudge();
     }
@@ -213,17 +228,29 @@ export class HUD {
         this._root.setPosition(0, visible ? 0 : HUD_HIDDEN_Y, 0);
     }
 
-    public showResult(stats: GameStats): void {
+    public showResult(stats: GameStats, best: BestRecord | null = null, isNew = false): void {
         this._overlay.active = true;
         this._readyGroup.active = false;
         this._resultGroup.active = true;
+        // 顶部实时数据与结算成绩同屏会让人以为「结算是 0 分」，这里整体移出画面
+        this._topBar.setPosition(0, HUD_HIDDEN_Y, 0);
         this._resetJudge();
 
         this._resultScore.string = pad(stats.score, 5);
         this._resultDetail.string =
             `PERFECT ${stats.perfect}      GREAT ${stats.great}\n` +
             `GOOD ${stats.good}      MISS ${stats.miss}\n` +
-            `MAX COMBO ${stats.maxCombo}      ACC ${(stats.accuracy * 100).toFixed(1)}%`;
+            `MAX COMBO ${stats.maxCombo}      ACC ${(stats.accuracy * 100).toFixed(1)}%\n` +
+            `TOTAL ${stats.totalJudged} / ${stats.total}`;
+
+        if (best && best.score > 0) {
+            this._bestLabel.string = isNew
+                ? `NEW RECORD  ${pad(best.score, 5)}`
+                : `BEST  ${pad(best.score, 5)}`;
+            this._bestLabel.color = isNew ? COLOR_BEST : withAlpha(COLOR_BEST, 150);
+        } else {
+            this._bestLabel.string = '';
+        }
     }
 
     /** 更新顶部曲名（切换谱面时调用） */
@@ -305,7 +332,14 @@ export class HUD {
         this._makeLabel(spaced('RESULT'), 11, withAlpha(COLOR_TEXT, 110), 0, 160, 0.5, FONT_SANS, false, group);
 
         this._resultScore = this._makeLabel('00000', 72, COLOR_TEXT, 0, 78, 0.5, FONT_SERIF, true, group);
-        this._resultDetail = this._makeLabel('', 16, COLOR_TEXT_DIM, 0, -40, 0.5, FONT_SANS, false, group);
+        // 固定宽度 + SHRINK + 关闭字形缓存：分数位数变化时不会被裁切，
+        // 也不会因为 CHAR 缓存尚未重建而只画出前两位。
+        this._resultScore.node.getComponent(UITransform)!.setContentSize(560, 110);
+        this._resultScore.overflow = Label.Overflow.SHRINK;
+        this._resultScore.cacheMode = Label.CacheMode.NONE;
+
+        this._resultDetail = this._makeLabel('', 16, COLOR_TEXT_DIM, 0, -36, 0.5, FONT_SANS, false, group);
+        this._bestLabel = this._makeLabel('', 18, COLOR_BEST, 0, -132, 0.5, FONT_SERIF, true, group);
 
         this._makeLabel('轻 触 任 意 处 再 来 一 次', 18, COLOR_TEXT, 0, -200, 0.5, FONT_SERIF, false, group);
 
