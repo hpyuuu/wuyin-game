@@ -844,8 +844,11 @@ const MELODY_IDS = [
             perfect: 30, great: 5, good: 2, miss: 2,
             combo: 0, maxCombo: 18, accuracy: 0.9, score: 1033,
         };
+        hud.updateStats({ ...stats, score: 500, combo: 3, accuracy: 0.5 });
         hud.showResult(stats);
         assert.strictEqual(hud['_resultScore'].string, '01033');
+        assert.strictEqual(hud['_scoreLabel'].string, '', '结算时左上角分数必须清空（双保险）');
+        assert.strictEqual(hud['_comboLabel'].string, '', '结算时连击必须清空');
         assert.ok(hud['_topBar'].position.y <= -10000, '结算时顶部 SCORE/COMBO 必须移出画面');
         assert.strictEqual(hud['_bestLabel'].string, '', '没有历史记录时不显示 BEST');
         assert.strictEqual(hud['_resultDetail'].string.indexOf('TOTAL 39 / 39') >= 0, true, '详情应包含判定总数');

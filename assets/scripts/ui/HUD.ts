@@ -65,8 +65,9 @@ export class HUD {
         parent.addChild(this._root);
 
         const halfW = layout.width / 2;
-        // 让开微信胶囊按钮占用的顶部空间
-        const topY = layout.height / 2 - layout.topInset;
+        // 让开微信胶囊按钮占用的顶部空间；
+        // 再额外下移 28px，避免左上角 SCORE 与「‹ 返回」按钮（中心在 topY-50）压字重叠
+        const topY = layout.height / 2 - layout.topInset - 28;
 
         // 顶部实时数据统一挂在 TopBar 下：结算时整体位移隐藏，
         // 否则结算页左上还会亮着上一局的 SCORE，与中间成绩同屏容易误读。
@@ -234,6 +235,11 @@ export class HUD {
         this._resultGroup.active = true;
         // 顶部实时数据与结算成绩同屏会让人以为「结算是 0 分」，这里整体移出画面
         this._topBar.setPosition(0, HUD_HIDDEN_Y, 0);
+        // 双保险：部分机型上位移可能未及时生效，同时把数值清空
+        this._scoreLabel.string = '';
+        this._comboLabel.string = '';
+        this._accLabel.string = '';
+        this._offsetStatLabel.string = '';
         this._resetJudge();
 
         this._resultScore.string = pad(stats.score, 5);

@@ -741,6 +741,9 @@ export class GameEntry extends Component {
         this._game.restart();
         this._stage.resetEffects();
         this._hud.resetOffsets();
+        // 先刷新一次统计数据：否则切曲 / 重进时左上角会残留上一局的分数与连击，
+        // 直到第一次判定才被覆盖。
+        this._hud.updateStats(this._game.stats);
         this._game.start();
         this._hud.showPlaying();
         this._mode = 'playing';
