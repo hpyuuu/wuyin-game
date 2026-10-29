@@ -14,3 +14,6 @@ Thumbs.db
 # 临时产物（预览二维码、自动化截图）
 preview-qr.png
 .screenshots/
+
+# 单测编译产物
+tools/tests/dist/

@@ -3,8 +3,6 @@ import { GameConfig } from './GameConfig';
 
 type WebAudio = any;
 
-/** 打击音时长（秒）：参考视频里音色明亮、带一定余音 */
-const CLICK_SECONDS = 0.55;
 /** 五轨音高：五声音阶 宫 商 角 徵 羽（C D E G A） */
 const LANE_TONES = [261.63, 293.66, 329.63, 392.0, 440.0];
 /** 时钟启动时预留的调度余量（秒），保证 BGM 与时间原点严格对齐 */
@@ -37,7 +35,6 @@ export class AudioManager {
     private _ctx: WebAudio | null = null;
     private _master: WebAudio | null = null;
     private _bgmGain: WebAudio | null = null;
-    private _hitBuffers: WebAudio[] = [];
     private _pluckBuffers: WebAudio[] = [];
     private _bgmBuffer: WebAudio | null = null;
     private _bgmSource: WebAudio | null = null;
@@ -103,8 +100,8 @@ export class AudioManager {
         master.connect(ctx.destination);
         this._master = master;
 
-        // 1) 程序化合成四轨打击音（等价于"预加载"）
-        this._buildHitSounds();
+        // 1) 程序化合成五轨拨弦音（等价于"预加载"）
+        this._buildPluckSounds();
         // 合成音就绪即可发声：BGM / 钢琴采样还在异步加载时也能立刻听到打击音，
         // 避免进入自由弹奏后前几百毫秒"点了没声音"。
         this._ready = true;
@@ -125,54 +122,14 @@ export class AudioManager {
     }
 
     // ------------------------------------------------------------------
-    // 打击音：程序化合成
+    // 拨弦音：程序化合成
     // ------------------------------------------------------------------
 
-    private _buildHitSounds(): void {
+    private _buildPluckSounds(): void {
         for (let lane = 0; lane < GameConfig.laneCount; lane++) {
             const freq = LANE_TONES[lane % LANE_TONES.length];
-            this._hitBuffers[lane] = this._synthClick(freq);
             this._pluckBuffers[lane] = this._synthPluck(freq);
         }
-    }
-
-    /**
-     * 合成一个短促的"木质敲击"音：
-     * 主音 + 两个泛音 → 指数衰减包络 → 4ms 噪声瞬态
-     */
-    private _synthClick(freq: number): WebAudio {
-        const ctx = this._ctx!;
-        const sampleRate = ctx.sampleRate || 44100;
-        const length = Math.max(1, Math.floor(sampleRate * CLICK_SECONDS));
-        const buffer = ctx.createBuffer(1, length, sampleRate);
-        const data = buffer.getChannelData(0);
-
-        for (let i = 0; i < length; i++) {
-            const t = i / sampleRate;
-            // 延音更长、泛音更多：听感更亮（对齐参考视频的明亮音色）
-            const env = Math.exp(-t * 5.6);
-            const tone =
-                Math.sin(2 * Math.PI * freq * t) * 0.5 +
-                Math.sin(2 * Math.PI * freq * 2.002 * t) * 0.26 +
-                Math.sin(2 * Math.PI * freq * 3.006 * t) * 0.15 +
-                Math.sin(2 * Math.PI * freq * 4.01 * t) * 0.08 +
-                Math.sin(2 * Math.PI * freq * 5.02 * t) * 0.04;
-
-            let transient = 0;
-            const attack = 0.004;
-            if (t < attack) {
-                const k = 1 - t / attack;
-                transient = (Math.random() * 2 - 1) * 0.2 * k * k;
-            }
-
-            // 缓冲末尾 60ms 淡出，避免硬切爆音
-            const tail = CLICK_SECONDS - t;
-            const fadeOut = tail < 0.06 ? Math.max(0, tail / 0.06) : 1;
-
-            const v = (tone * env + transient) * 0.6 * fadeOut;
-            data[i] = v > 1 ? 1 : (v < -1 ? -1 : v);
-        }
-        return buffer;
     }
 
     /**
@@ -280,26 +237,6 @@ export class AudioManager {
         } catch (e) {
             return null;
         }
-    }
-
-    /**
-     * 播放打击音效（节奏模式）：主音 + 85ms 后的早期反射，制造轻微空间感。
-     */
-    public playHit(lane: number): void {
-        if (this._useSamples) {
-            const index = this._toneIndex[lane];
-            const sample = index === undefined ? null : this._toneBuffers[index];
-            if (sample) {
-                this._playBuffer(sample, GameConfig.hitVolume, 0, this._toneRate[lane] || 1);
-                return;
-            }
-        }
-        const buffer = this._hitBuffers[lane] || this._hitBuffers[0];
-        if (!buffer) {
-            return;
-        }
-        this._playBuffer(buffer, GameConfig.hitVolume);
-        this._playBuffer(buffer, GameConfig.hitVolume * 0.25, 0.085);
     }
 
     /**

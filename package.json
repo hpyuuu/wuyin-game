@@ -6,12 +6,9 @@
   },
   "type": "3d",
   "version": "3.8.6",
-  "description": "",
+  "description": "五音·五轨 —— 基于 Cocos Creator 的五轨下落节奏 + 自由弹奏微信小游戏",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "keywords": [],
-  "author": "",
+  "author": "hpyuuu",
   "license": "ISC"
 }

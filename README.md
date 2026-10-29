@@ -4,8 +4,11 @@
 
 - 主界面三入口：**节奏模式** / **自由弹奏** / **宣传内容**
 - 五条固定垂直轨道对应宫、商、角、徵、羽（简谱 1 2 3 5 6），底部判定线
+- 内置 12 首琴谱：3 首程序谱 + 9 首五声民歌古曲，支持分页与难度筛选
+- **按下轨道即演奏该音符原本的音高**：谱面带 MIDI，Web Audio 实时合成八音盒 / 古筝音色
+- 五声轨道装不下的半音（4 / 7）以 auto 音符自动发声，不下落、不判定
+- 同轨不同八度在方块亮度 / 描边上区分（高音提亮、低音压暗）
 - 自由弹奏：五根可拨动的琴弦，弦会弯、会响、会有光点与波纹
-- 打击音效全部由 Web Audio 程序化合成，零音频素材依赖
 - 唯一时间源：`wx.createWebAudioContext()` 的音频时钟
 - 音符节点对象池复用，判定窗口 ±40 / ±80 / ±120 ms
 - 全局偏移校准参数硬编码在 `GameConfig.globalOffsetMs`，方便真机调试手感
@@ -129,8 +132,9 @@ new_think/                          ← 项目根目录（用 Cocos Dashboard �
 | 能力 | 实现 |
 | --- | --- |
 | 上下文 | 微信下 `wx.createWebAudioContext()`，浏览器预览自动回退 `AudioContext` |
-| 音色 | 优先播放 **Salamander Grand Piano** 采样（CC-BY 3.0，Alexander Holm 录制）：取 C4 / F#4 / A4 三个音，用 `playbackRate` 变调覆盖五声音阶；加载失败自动回退合成音 |
-| 打击音 | 合成回退方案：6 次谐波 + 触弦噪声 + 轻微音高下滑（0.6s / 1.5s） |
+| 击打音（节奏模式） | 按下轨道时读取谱面 `midi`，按 `freq = 440 × 2^((midi-69)/12)` 实时合成；自定义周期波（基频 + 递减泛音）+ 4ms 起音、1.1s 衰减，接近八音盒 / 古筝 |
+| 拨弦音（自由弹奏） | 优先 Salamander Grand Piano 采样（C4 / F#4 / A4 变调，最多跨 3 个半音）；加载失败回退程序化拨弦缓冲 |
+| 半音自动音 | 谱面标记 `auto` 的音符到点自动发声（音量系数 0.7），不生成方块、不参与判定 |
 | 播放 | 每次 `createBufferSource()` → `connect` → `start(0)`，在 **`onended` 回调中 `disconnect()`** 释放 source 与 gain，避免音频图节点泄漏 |
 | BGM | 短 MP3 预加载 → `decodeAudioData` → `AudioBufferSourceNode(loop=true)` 循环播放（"短音频流式"方案，规避长音频体积） |
 | 无 BGM 降级 | 用一个 0 振幅振荡器保活音频时钟，游戏照常可玩 |
@@ -251,3 +255,30 @@ y = judgeY + (note.time - currentAudioTime) * fallSpeed
 - 判定发生在主线程帧回调里，帧率波动时最多引入 1 帧（约 16.7ms）误差，可用 `globalOffsetMs` 吸收；如需更精细，可在触摸回调里直接判定并缓存结果。
 - 微信小游戏切后台会挂起音频时钟，返回后时间是连续的，不会出现音符瞬移。
 - BGM 为单曲循环方案，长曲需要改为按小节调度或远程 CDN 加载。
+
+---
+
+## 十一、项目文档
+
+| 文档 | 说明 |
+| --- | --- |
+| [需求说明](docs/01-需求说明.md) | 功能 / 非功能需求与验收标准 |
+| [设计文档](docs/02-设计文档.md) | 架构、数据模型、判定算法、音频方案 |
+| [测试报告](docs/03-测试报告.md) | 40 项单元测试与模拟器冒烟结果 |
+| [部署手册](docs/04-部署手册.md) | 构建、预览、发布、排障与回滚 |
+| [交付清单](docs/05-交付清单.md) | 产出物清单与需求对照 |
+| [收尾报告](docs/06-收尾报告.md) | 全周期总结与结项结论 |
+
+---
+
+## 十二、本地校验
+
+```bash
+# 类型检查（使用 Cocos 自带 tsc）
+node "<Cocos>/resources/app.asar.unpacked/node_modules/typescript/bin/tsc" --noEmit -p tsconfig.json
+
+# 单元测试（40 项）
+cd tools/tests
+node "<同上>/tsc" -p tsconfig.json
+node test.js
+```

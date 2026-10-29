@@ -32,8 +32,6 @@ export const GameConfig = {
         great: 80,
         good: 120,
     },
-    /** 音符被判定后向下漂移多少像素即回收 */
-    recycleBelowJudge: 260,
     /** 最后一个音符结束后，延迟多久结算 */
     endDelayMs: 1400,
 

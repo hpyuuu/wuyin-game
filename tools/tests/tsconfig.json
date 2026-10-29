@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmitOnError": false,
+    "outDir": "dist",
+    "rootDir": "../../assets/scripts",
+    "esModuleInterop": false,
+    "types": [],
+    "baseUrl": ".",
+    "paths": {
+      "cc": ["./mock-cc/index.d.ts"]
+    }
+  },
+  "include": ["../../assets/scripts/**/*.ts"],
+  "exclude": [
+    "../../assets/scripts/GameEntry.ts",
+    "../../assets/scripts/ui/Backdrop.ts",
+    "../../assets/scripts/ui/MainMenu.ts"
+  ]
+}
